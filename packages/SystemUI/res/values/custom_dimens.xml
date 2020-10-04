@@ -18,4 +18,8 @@
 
     <!-- The height of the WiFi toggle layout in Internet panel -->
     <dimen name="internet_dialog_wifi_toggle_height">56dp</dimen>
+    
+    <!-- Additional gesture navbar lengths -->
+    <dimen name="navigation_home_handle_width_short">72dp</dimen>
+    <dimen name="navigation_home_handle_width_long">140dp</dimen>
 </resources>
