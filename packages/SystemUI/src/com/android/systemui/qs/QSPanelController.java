@@ -168,6 +168,7 @@ public class QSPanelController extends QSPanelControllerBase<QSPanel> {
         PagedTileLayout pagedTileLayout= ((PagedTileLayout) mView.getOrCreateTileLayout());
         pagedTileLayout.setOnTouchListener(mTileLayoutTouchListener);
         maybeReinflateBrightnessSlider();
+        mBrightnessController.addListeners();
     }
 
     @Override
@@ -180,6 +181,7 @@ public class QSPanelController extends QSPanelControllerBase<QSPanel> {
     protected void onViewDetached() {
         getContext().getContentResolver().unregisterContentObserver(mView.getContentObserver());
         mBrightnessMirrorHandler.onQsPanelDettached();
+        mBrightnessController.removeListeners();
         super.onViewDetached();
     }
 
