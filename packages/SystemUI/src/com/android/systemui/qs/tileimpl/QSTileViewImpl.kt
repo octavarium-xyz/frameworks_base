@@ -32,6 +32,8 @@ import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.RippleDrawable
 import android.os.Trace
+import android.os.UserHandle
+import android.provider.Settings
 import android.service.quicksettings.Tile
 import android.text.TextUtils
 import android.util.Log
@@ -71,6 +73,8 @@ import com.android.systemui.qs.logging.QSLogger
 import com.android.systemui.qs.tileimpl.QSIconViewImpl.QS_ANIM_LENGTH
 import com.android.systemui.res.R
 import java.util.Objects
+
+import com.android.internal.util.android.VibrationUtils
 
 private const val TAG = "QSTileViewImpl"
 
@@ -130,6 +134,14 @@ constructor(
             /* alpha= */ 0.08f,
             Utils.getColorAttrDefaultColor(context, R.attr.onShadeInactive)
         )
+
+    private val qsTileHaptic: Int = Settings.System.getIntForUser(
+            context.contentResolver,
+            Settings.System.QS_PANEL_TILE_HAPTIC, 0, UserHandle.USER_CURRENT
+        )
+
+    private var initialX = 0f
+    private var initialY = 0f
 
     private val colorLabelActive = Utils.getColorAttrDefaultColor(context, R.attr.onShadeActive)
     private val colorLabelInactive = Utils.getColorAttrDefaultColor(context, R.attr.onShadeInactive)
@@ -618,21 +630,31 @@ constructor(
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent?): Boolean {
-        // let the View run the onTouch logic for click and long-click detection
         val result = super.onTouchEvent(event)
-        if (longPressEffect != null) {
-            when (event?.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    longPressEffect.handleActionDown()
-                    if (isLongClickable) {
-                        postDelayed(
-                            { longPressEffect.handleTimeoutComplete() },
-                            ViewConfiguration.getTapTimeout().toLong(),
-                        )
-                    }
+        val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+        if (event == null) return result
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                initialX = event.x
+                initialY = event.y
+                longPressEffect?.handleActionDown()
+                if (isLongClickable) {
+                    postDelayed(
+                        { longPressEffect?.handleTimeoutComplete() },
+                        ViewConfiguration.getTapTimeout().toLong(),
+                    )
                 }
-                MotionEvent.ACTION_UP -> longPressEffect.handleActionUp()
-                MotionEvent.ACTION_CANCEL -> longPressEffect.handleActionCancel()
+            }
+            MotionEvent.ACTION_UP -> {
+                val distanceX = Math.abs(event.x - initialX)
+                val distanceY = Math.abs(event.y - initialY)
+                longPressEffect?.handleActionUp()
+                if (distanceX < touchSlop && distanceY < touchSlop) {
+                    VibrationUtils.triggerVibration(context, qsTileHaptic)
+                }
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                longPressEffect?.handleActionCancel()
             }
         }
         return result
