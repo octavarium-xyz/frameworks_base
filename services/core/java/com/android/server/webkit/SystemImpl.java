@@ -83,10 +83,12 @@ public class SystemImpl implements SystemInterface {
     private SystemImpl() {
         int numFallbackPackages = 0;
         int numAvailableByDefaultPackages = 0;
+        Context mContext = AppGlobals.getInitialApplication();
         XmlResourceParser parser = null;
         List<WebViewProviderInfo> webViewProviders = new ArrayList<WebViewProviderInfo>();
+        List<String> webviewPackages = new ArrayList<>();
         try {
-            parser = AppGlobals.getInitialApplication().getResources().getXml(
+            parser = mContext.getResources().getXml(
                     com.android.internal.R.xml.config_webview_packages);
             XmlUtils.beginDocument(parser, TAG_START);
             while(true) {
@@ -128,6 +130,7 @@ public class SystemImpl implements SystemInterface {
                         numAvailableByDefaultPackages++;
                     }
                     webViewProviders.add(currentProvider);
+                    webviewPackages.add(packageName);
                 }
                 else {
                     Log.e(TAG, "Found an element that is not a WebView provider");
@@ -141,6 +144,15 @@ public class SystemImpl implements SystemInterface {
         if (numAvailableByDefaultPackages == 0) {
             throw new AndroidRuntimeException("There must be at least one WebView package "
                     + "that is available by default");
+        }
+        PackageManager pm = mContext.getPackageManager();
+        List<ApplicationInfo> appList = pm.getInstalledApplications(PackageManager.GET_META_DATA);
+        for (ApplicationInfo appInfo : appList) {
+            if (WebViewFactory.getWebViewLibrary(appInfo) != null
+                    && !webviewPackages.contains(appInfo.packageName)) {
+                webViewProviders.add(new WebViewProviderInfo(appInfo.packageName,
+                        appInfo.loadLabel(pm).toString(), false, false, null));
+            }
         }
         mWebViewProviderPackages =
                 webViewProviders.toArray(new WebViewProviderInfo[webViewProviders.size()]);
