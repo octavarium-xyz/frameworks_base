@@ -19,11 +19,19 @@ import android.provider.Settings;
 
 public class RisingSettingsConstants {
     public static final String CLOCK_STYLE = "clock_style";
+    public static final String VOLUME_STYLE = "custom_volume_styles";
 
     public static final String[] SYSTEM_SETTINGS_KEYS = {
     };
     
     public static final String[] SECURE_SETTINGS_KEYS = {
         CLOCK_STYLE
+    };
+    
+    public static final String[] SYSTEM_SETTINGS_NOTIFY_ONLY_KEYS = {
+        VOLUME_STYLE
+    };
+    
+    public static final String[] SECURE_SETTINGS_NOTIFY_ONLY_KEYS = {
     };
 }

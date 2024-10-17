@@ -40,20 +40,15 @@ public class RisingThemeController {
     }
 
     public void observeSettings(Runnable reevaluateSystemThemeCallback) {
-        observeSystemSettings(reevaluateSystemThemeCallback, RisingSettingsConstants.SYSTEM_SETTINGS_KEYS);
-        observeSecureSettings(reevaluateSystemThemeCallback, RisingSettingsConstants.SECURE_SETTINGS_KEYS);
+        observeSettingsKeys(RisingSettingsConstants.SYSTEM_SETTINGS_KEYS, reevaluateSystemThemeCallback, true);
+        observeSettingsKeys(RisingSettingsConstants.SECURE_SETTINGS_KEYS, reevaluateSystemThemeCallback, false);
+        observeSettingsKeys(RisingSettingsConstants.SYSTEM_SETTINGS_NOTIFY_ONLY_KEYS, null, true);
+        observeSettingsKeys(RisingSettingsConstants.SECURE_SETTINGS_NOTIFY_ONLY_KEYS, null, false);
     }
 
-    private void observeSystemSettings(Runnable reevaluateSystemThemeCallback, String... keys) {
+    private void observeSettingsKeys(String[] keys, Runnable reevaluateSystemThemeCallback, boolean isSystem) {
         for (String key : keys) {
-            Uri uri = Settings.System.getUriFor(key);
-            observe(uri, reevaluateSystemThemeCallback);
-        }
-    }
-
-    public void observeSecureSettings(Runnable reevaluateSystemThemeCallback, String... keys) {
-        for (String key : keys) {
-            Uri uri = Settings.Secure.getUriFor(key);
+            Uri uri = isSystem ? Settings.System.getUriFor(key) : Settings.Secure.getUriFor(key);
             observe(uri, reevaluateSystemThemeCallback);
         }
     }
@@ -67,8 +62,10 @@ public class RisingThemeController {
                     if (isDeviceSetupComplete()) {
                         toast.show();
                     }
-                    mBackgroundHandler.postDelayed(() -> reevaluateSystemThemeCallback.run(),
-                            isDeviceSetupComplete() ? toast.getDuration() + 1250 : 0);
+                    if (reevaluateSystemThemeCallback != null) {
+                        mBackgroundHandler.postDelayed(() -> reevaluateSystemThemeCallback.run(),
+                                isDeviceSetupComplete() ? toast.getDuration() + 1250 : 0);
+                    }
                 }
             };
             mContentResolver.registerContentObserver(uri, false, contentObserver);
