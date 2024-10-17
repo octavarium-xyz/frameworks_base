@@ -74,6 +74,7 @@ import android.media.AudioSystem;
 import android.media.session.MediaController;
 import android.media.session.MediaSessionManager;
 import android.media.session.PlaybackState;
+import android.net.Uri;
 import android.os.Debug;
 import android.os.Handler;
 import android.os.Looper;
@@ -344,6 +345,9 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
     private final com.android.systemui.util.time.SystemClock mSystemClock;
     private final VolumePanelFlag mVolumePanelFlag;
     private final VolumeDialogInteractor mInteractor;
+    
+    private final ContentObserver mVolumeDialogImplObserver;
+    private final VolumeUtils mVolumeUtils;
 
     public VolumeDialogImpl(
             Context context,
@@ -399,6 +403,8 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         mDialogTimeoutMillis = DIALOG_TIMEOUT_MILLIS;
         mVolumePanelFlag = volumePanelFlag;
         mInteractor = interactor;
+        
+        mVolumeUtils = new VolumeUtils(mContext);
 
         dumpManager.registerDumpable("VolumeDialogImpl", this);
 
@@ -432,6 +438,22 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                     false, volumePanelOnLeftObserver);
             volumePanelOnLeftObserver.onChange(true);
         }
+        
+        mVolumeDialogImplObserver = new ContentObserver(null) {
+            @Override
+            public void onChange(boolean selfChange, Uri uri) {
+                if (uri == null || uri.equals(Settings.System.getUriFor("custom_volume_styles"))) {
+                    final int volumeStyle = Settings.System.getInt(
+                            mContext.getContentResolver(),
+                            "custom_volume_styles", 0);
+                    mVolumeUtils.setVolumeStyle(volumeStyle);
+                }
+            }
+        };
+        mContext.getContentResolver().registerContentObserver(
+                Settings.System.getUriFor("custom_volume_styles"),
+                false, mVolumeDialogImplObserver);
+        mVolumeDialogImplObserver.onChange(true, null);
 
         initDimens();
 
@@ -492,6 +514,8 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         if (mDevicePostureController != null) {
             mDevicePostureController.removeCallback(mDevicePostureControllerCallback);
         }
+        mContext.getContentResolver().unregisterContentObserver(mVolumeDialogImplObserver);
+        mVolumeUtils.onDestroy();
     }
 
     @Override
@@ -1007,7 +1031,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         row.anim = null;
 
         final LayerDrawable seekbarDrawable =
-                (LayerDrawable) mContext.getDrawable(R.drawable.volume_row_seekbar);
+                (LayerDrawable) mContext.getDrawable(mVolumeUtils.getRowDrawable());
 
         final LayerDrawable seekbarProgressDrawable = (LayerDrawable)
                 ((RoundedCornerProgressDrawable) seekbarDrawable.findDrawableByLayerId(
