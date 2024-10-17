@@ -448,10 +448,19 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                             "custom_volume_styles", 0);
                     mVolumeUtils.setVolumeStyle(volumeStyle);
                 }
+                if (uri == null || uri.equals(Settings.System.getUriFor("volume_sound_haptics"))) {
+                    final boolean soundHapticsEnabled = Settings.System.getInt(
+                            mContext.getContentResolver(),
+                            "volume_sound_haptics", 0) != 0;
+                    mVolumeUtils.setSoundsHapticsEnabled(soundHapticsEnabled);
+                }
             }
         };
         mContext.getContentResolver().registerContentObserver(
                 Settings.System.getUriFor("custom_volume_styles"),
+                false, mVolumeDialogImplObserver);
+        mContext.getContentResolver().registerContentObserver(
+                Settings.System.getUriFor("volume_sound_haptics"),
                 false, mVolumeDialogImplObserver);
         mVolumeDialogImplObserver.onChange(true, null);
 
@@ -3003,6 +3012,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                 mHandler.sendMessageDelayed(mHandler.obtainMessage(H.RECHECK, mRow),
                         USER_ATTEMPT_GRACE_PERIOD);
             }
+            mVolumeUtils.playSoundForStreamType(mRow.stream);
         }
     }
 
