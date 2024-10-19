@@ -67,6 +67,7 @@ import android.graphics.Color;
 import android.graphics.Insets;
 import android.graphics.Rect;
 import android.graphics.Region;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.PowerManager;
@@ -321,7 +322,7 @@ public final class NotificationPanelViewController implements ShadeSurface, Dump
             new ShadeHeadsUpChangedListener();
     private final ConfigurationListener mConfigurationListener = new ConfigurationListener();
     private final SettingsChangeObserver mSettingsChangeObserver;
-    private final ContentObserver mDoubleTapToSleepObserver;
+    private final ContentObserver mNPVCSettingsObserver;
     private final StatusBarStateListener mStatusBarStateListener = new StatusBarStateListener();
     private final NotificationPanelView mView;
     private final VibratorHelper mVibratorHelper;
@@ -633,6 +634,8 @@ public final class NotificationPanelViewController implements ShadeSurface, Dump
     private int mLockscreenToDreamingTransitionTranslationY;
     private int mGoneToDreamingTransitionTranslationY;
     private boolean mForceFlingAnimationForTest = false;
+    private int mQsHapticsIntensity = 1;
+
     private final SplitShadeStateController mSplitShadeStateController;
     private final Runnable mFlingCollapseRunnable = () -> fling(0, false /* expand */,
             mNextCollapseSpeedUpFactor, false /* expandBecauseOfFalsing */);
@@ -953,13 +956,19 @@ public final class NotificationPanelViewController implements ShadeSurface, Dump
                 return true;
             }
         });
-        mDoubleTapToSleepObserver = new ContentObserver(handler) {
+        mNPVCSettingsObserver = new ContentObserver(handler) {
             @Override
-            public void onChange(boolean selfChange) {
-                mDoubleTapToSleepEnabled = LineageSettings.System.getInt(mContentResolver,
-                        LineageSettings.System.DOUBLE_TAP_SLEEP_GESTURE,
-                        mResources.getBoolean(org.lineageos.platform.internal.R.bool.
-                                config_dt2sGestureEnabledByDefault) ? 1 : 0) != 0;
+            public void onChange(boolean selfChange, Uri uri) {
+                if (uri == null || uri.equals(LineageSettings.System.getUriFor(
+                    LineageSettings.System.DOUBLE_TAP_SLEEP_GESTURE))) {
+                    mDoubleTapToSleepEnabled = LineageSettings.System.getInt(mContentResolver,
+                            LineageSettings.System.DOUBLE_TAP_SLEEP_GESTURE,
+                            mResources.getBoolean(org.lineageos.platform.internal.R.bool.
+                                    config_dt2sGestureEnabledByDefault) ? 1 : 0) != 0;
+                } else if (uri == null || uri.equals(Settings.System.getUriFor("qs_haptics_intensity"))) {
+                    mQsHapticsIntensity = Settings.System.getInt(mContentResolver,
+                            "qs_haptics_intensity",0);
+                }
             }
         };
         mConversationNotificationManager = conversationNotificationManager;
@@ -3803,10 +3812,7 @@ public final class NotificationPanelViewController implements ShadeSurface, Dump
     private void maybeVibrateOnOpening(boolean openingWithTouch) {
         if (mVibrateOnOpening && mBarState != KEYGUARD && mBarState != SHADE_LOCKED) {
             if (!openingWithTouch || !mHasVibratedOnOpen) {
-                mVibratorHelper.performHapticFeedback(
-                        mView,
-                        HapticFeedbackConstants.GESTURE_START
-                );
+                com.android.internal.util.android.VibrationUtils.triggerVibration(mView.getContext(), mQsHapticsIntensity);
                 mHasVibratedOnOpen = true;
                 mShadeLog.v("Vibrating on opening, mHasVibratedOnOpen=true");
             }
@@ -4732,8 +4738,11 @@ public final class NotificationPanelViewController implements ShadeSurface, Dump
             mConfigurationController.addCallback(mConfigurationListener);
             mContentResolver.registerContentObserver(LineageSettings.System.getUriFor(
                     LineageSettings.System.DOUBLE_TAP_SLEEP_GESTURE), false,
-                    mDoubleTapToSleepObserver);
-            mDoubleTapToSleepObserver.onChange(true);
+                    mNPVCSettingsObserver);
+            mContentResolver.registerContentObserver(Settings.System.getUriFor(
+                    "qs_haptics_intensity"), false,
+                    mNPVCSettingsObserver);
+            mNPVCSettingsObserver.onChange(true, null);
             // Theme might have changed between inflating this view and attaching it to the
             // window, so
             // force a call to onThemeChanged
@@ -4745,7 +4754,7 @@ public final class NotificationPanelViewController implements ShadeSurface, Dump
 
         @Override
         public void onViewDetachedFromWindow(View v) {
-            mContentResolver.unregisterContentObserver(mDoubleTapToSleepObserver);
+            mContentResolver.unregisterContentObserver(mNPVCSettingsObserver);
             mContentResolver.unregisterContentObserver(mSettingsChangeObserver);
             mFragmentService.getFragmentHostManager(mView)
                     .removeTagListener(QS.TAG, mQsController.getQsFragmentListener());
