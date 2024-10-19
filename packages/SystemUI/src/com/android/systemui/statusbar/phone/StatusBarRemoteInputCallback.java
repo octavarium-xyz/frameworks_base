@@ -197,8 +197,7 @@ public class StatusBarRemoteInputCallback implements Callback, Callbacks,
                 mGroupExpansionManager.toggleGroupExpansion(row.getEntry());
             }
 
-            if (android.app.Flags.compactHeadsUpNotificationReply()
-                    && row.isCompactConversationHeadsUpOnScreen()) {
+            if (row.isCompactConversationHeadsUpOnScreen()) {
                 // Notification can be system expanded true and it is set user expanded in
                 // activateRemoteInput. notifyHeightChanged also doesn't work as visibleType doesn't
                 // change. To expand huning notification properly, we need set userExpanded false.

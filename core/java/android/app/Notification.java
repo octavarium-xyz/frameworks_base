@@ -9062,7 +9062,7 @@ public class Notification implements Parcelable
         private boolean showConversationTitle() {
             return SystemProperties.getBoolean(
                     "persist.compact_heads_up_notification.show_conversation_title_for_group",
-                    false);
+                    true);
         }
 
         /**
@@ -9370,16 +9370,14 @@ public class Notification implements Parcelable
                     }
                 }
 
-                if (Flags.compactHeadsUpNotificationReply()) {
-                    // Get the first non-contextual inline reply action.
-                    final List<Notification.Action> nonContextualActions =
-                            mBuilder.getNonContextualActions();
-                    for (int i = 0; i < nonContextualActions.size(); i++) {
-                        final Notification.Action action = nonContextualActions.get(i);
-                        if (mBuilder.hasValidRemoteInput(action)) {
-                            remoteInputAction = action;
-                            break;
-                        }
+                // Get the first non-contextual inline reply action.
+                final List<Notification.Action> nonContextualActions =
+                        mBuilder.getNonContextualActions();
+                for (int i = 0; i < nonContextualActions.size(); i++) {
+                    final Notification.Action action = nonContextualActions.get(i);
+                    if (mBuilder.hasValidRemoteInput(action)) {
+                        remoteInputAction = action;
+                        break;
                     }
                 }
             }
