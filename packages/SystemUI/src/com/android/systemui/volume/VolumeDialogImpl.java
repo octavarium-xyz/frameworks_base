@@ -1386,6 +1386,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                 mMediaOutputDialogManager.dismiss();
                 mVolumeNavigator.openVolumePanel(
                         mVolumePanelNavigationInteractor.getVolumePanelRoute());
+                com.android.internal.util.android.VibrationUtils.triggerVibration(mContext, 4);
             });
         }
     }
