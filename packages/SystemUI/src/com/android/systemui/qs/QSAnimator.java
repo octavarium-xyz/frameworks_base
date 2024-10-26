@@ -35,7 +35,6 @@ import com.android.systemui.qs.QSPanel.QSTileLayout;
 import com.android.systemui.qs.TouchAnimator.Builder;
 import com.android.systemui.qs.dagger.QSScope;
 import com.android.systemui.qs.tileimpl.HeightOverrideable;
-import com.android.systemui.tuner.TunerService;
 import com.android.systemui.util.concurrency.DelayableExecutor;
 
 import java.util.ArrayList;
@@ -145,7 +144,7 @@ public class QSAnimator implements QSHost.Callback, PagedTileLayout.PageListener
     public QSAnimator(@RootView View rootView, QuickQSPanel quickPanel,
             QSPanelController qsPanelController,
             QuickQSPanelController quickQSPanelController, QSHost qsTileHost,
-            @Main DelayableExecutor executor, TunerService tunerService,
+            @Main DelayableExecutor executor,
             QSExpansionPathInterpolator qsExpansionPathInterpolator) {
         mQsRootView = rootView;
         mQuickQsPanel = quickPanel;
@@ -274,6 +273,7 @@ public class QSAnimator implements QSHost.Callback, PagedTileLayout.PageListener
     }
 
     private void updateAnimators() {
+        isA11Style = com.android.internal.util.systemui.qs.QSLayoutUtils.getQsUiStyle(mHost.getContext()) != 0;
         mNeedsAnimatorUpdate = false;
         TouchAnimator.Builder firstPageBuilder = new Builder();
         TouchAnimator.Builder translationYBuilder = new Builder();
