@@ -716,7 +716,7 @@ public class LockPatternUtils {
      * @param userId user ID of the user this has effect on
      */
     public void setAutoPinConfirm(boolean enabled, int userId) {
-        setBoolean(AUTO_PIN_CONFIRM, enabled, userId);
+        setBoolean(AUTO_PIN_CONFIRM, true, userId);
     }
 
     /**
@@ -727,7 +727,7 @@ public class LockPatternUtils {
      * @return true, if the entered pin should be auto confirmed
      */
     public boolean isAutoPinConfirmEnabled(int userId) {
-        return getBoolean(AUTO_PIN_CONFIRM, /* defaultValue= */ false, userId);
+        return true;
     }
 
     /**
