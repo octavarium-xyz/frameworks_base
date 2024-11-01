@@ -1497,6 +1497,7 @@ final class ActivityManagerConstants extends ContentObserver {
         updateForceEnablePssProfiling();
         // Read DropboxRateLimiter params from flags.
         mService.initDropboxRateLimiter();
+        updateMaxCachedProcesses();
     }
 
     void loadDeviceConfigConstants() {
@@ -2028,18 +2029,17 @@ final class ActivityManagerConstants extends ContentObserver {
     }
 
     private void updateMaxCachedProcesses() {
-        String maxCachedProcessesFlag = DeviceConfig.getProperty(
-                DeviceConfig.NAMESPACE_ACTIVITY_MANAGER, KEY_MAX_CACHED_PROCESSES);
-        try {
-            CUR_MAX_CACHED_PROCESSES = mOverrideMaxCachedProcesses < 0
-                    ? (TextUtils.isEmpty(maxCachedProcessesFlag)
-                    ? mCustomizedMaxCachedProcesses : Integer.parseInt(maxCachedProcessesFlag))
-                    : mOverrideMaxCachedProcesses;
-        } catch (NumberFormatException e) {
-            // Bad flag value from Phenotype, revert to default.
-            Slog.e(TAG,
-                    "Unable to parse flag for max_cached_processes: " + maxCachedProcessesFlag, e);
-            CUR_MAX_CACHED_PROCESSES = mCustomizedMaxCachedProcesses;
+        final long ramBytes = new com.android.internal.util.MemInfoReader().getTotalSize();
+        if (ramBytes <= android.util.DataUnit.GIGABYTES.toBytes(6)) {
+            CUR_MAX_CACHED_PROCESSES = 48;
+        } else if (ramBytes <= android.util.DataUnit.GIGABYTES.toBytes(8)) {
+            CUR_MAX_CACHED_PROCESSES = 64;
+        } else if (ramBytes <= android.util.DataUnit.GIGABYTES.toBytes(12)) {
+            CUR_MAX_CACHED_PROCESSES = 128;
+        } else if (ramBytes <= android.util.DataUnit.GIGABYTES.toBytes(16)) {
+            CUR_MAX_CACHED_PROCESSES = 256;
+        } else {
+            CUR_MAX_CACHED_PROCESSES = 1024;
         }
         CUR_MAX_EMPTY_PROCESSES = computeEmptyProcessLimit(CUR_MAX_CACHED_PROCESSES);
 
