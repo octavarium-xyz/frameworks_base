@@ -480,13 +480,17 @@ public class AppWidgetProviderInfo implements Parcelable {
     @Nullable
     public final CharSequence loadDescription(@NonNull Context context) {
         if (ResourceId.isValid(descriptionRes)) {
-            CharSequence description =
-                    context.getPackageManager().getText(
-                            providerInfo.packageName,
-                            descriptionRes,
-                            providerInfo.applicationInfo);
-            if (description != null) {
-                return description.toString().trim();
+            try {
+                CharSequence description =
+                        context.getPackageManager().getText(
+                                providerInfo.packageName,
+                                descriptionRes,
+                                providerInfo.applicationInfo);
+                if (description != null) {
+                    return description.toString().trim();
+                }
+            } catch (Resources.NotFoundException e) {
+                /* ignore */
             }
         }
         return null;
