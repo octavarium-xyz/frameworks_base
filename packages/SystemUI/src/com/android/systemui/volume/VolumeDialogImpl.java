@@ -331,8 +331,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
     private final VolumeDialogMenuIconBinder mVolumeDialogMenuIconBinder;
     private final VolumePanelFlag mVolumePanelFlag;
     private final VolumeDialogInteractor mInteractor;
-    
-    private final ContentObserver mVolumeDialogImplObserver;
+
     private final VolumeUtils mVolumeUtils;
 
     public VolumeDialogImpl(
@@ -426,40 +425,6 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                     false, volumePanelOnLeftObserver);
             volumePanelOnLeftObserver.onChange(true);
         }
-        
-        mVolumeDialogImplObserver = new ContentObserver(null) {
-            @Override
-            public void onChange(boolean selfChange, Uri uri) {
-                if (uri == null || uri.equals(Settings.System.getUriFor("custom_volume_styles"))) {
-                    final int volumeStyle = Settings.System.getInt(
-                            mContext.getContentResolver(),
-                            "custom_volume_styles", 0);
-                    mVolumeUtils.setVolumeStyle(volumeStyle);
-                }
-                if (uri == null || uri.equals(Settings.System.getUriFor("volume_sound_haptics"))) {
-                    final boolean soundHapticsEnabled = Settings.System.getInt(
-                            mContext.getContentResolver(),
-                            "volume_sound_haptics", 0) != 0;
-                    mVolumeUtils.setSoundsHapticsEnabled(soundHapticsEnabled);
-                }
-                if (uri == null || uri.equals(Settings.System.getUriFor("volume_slider_haptics_intensity"))) {
-                    final int hapticsIntensity = Settings.System.getInt(
-                            mContext.getContentResolver(),
-                            "volume_slider_haptics_intensity", 0);
-                    mVolumeUtils.setVolHapticsIntensity(hapticsIntensity);
-                }
-            }
-        };
-        mContext.getContentResolver().registerContentObserver(
-                Settings.System.getUriFor("custom_volume_styles"),
-                false, mVolumeDialogImplObserver);
-        mContext.getContentResolver().registerContentObserver(
-                Settings.System.getUriFor("volume_sound_haptics"),
-                false, mVolumeDialogImplObserver);
-        mContext.getContentResolver().registerContentObserver(
-                Settings.System.getUriFor("volume_slider_haptics_intensity"),
-                false, mVolumeDialogImplObserver);
-        mVolumeDialogImplObserver.onChange(true, null);
 
         initDimens();
 
@@ -520,7 +485,6 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         if (mDevicePostureController != null) {
             mDevicePostureController.removeCallback(mDevicePostureControllerCallback);
         }
-        mContext.getContentResolver().unregisterContentObserver(mVolumeDialogImplObserver);
         mVolumeUtils.onDestroy();
         mVolumeDialogMenuIconBinder.destroy();
     }

@@ -17,6 +17,7 @@
 package com.android.systemui.volume;
 
 import android.content.Context;
+import android.database.ContentObserver;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
@@ -24,6 +25,7 @@ import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Handler;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -51,6 +53,7 @@ public class VolumeUtils {
     private MediaPlayer mMediaPlayer = null;
     private Context mContext;
     private Handler mHandler;
+
     private final ThemeUtils mThemeUtils;
     
     private int mVolumeStyle = 0;
@@ -66,6 +69,8 @@ public class VolumeUtils {
             R.drawable.volume_row_seekbar_outline,
             R.drawable.volume_row_seekbar_shaded_layer
         };
+    
+    private VolumeDialogImplObserver mVolumeDialogImplObserver;
 
     public VolumeUtils(Context context) {
         mContext = context;
@@ -73,6 +78,8 @@ public class VolumeUtils {
         mMediaPlayer = new MediaPlayer();
         mMediaPlayer.setOnCompletionListener(mp -> stopPlayback());
         mThemeUtils = ThemeUtils.getInstance(context);
+        mVolumeDialogImplObserver = new VolumeDialogImplObserver();
+        mVolumeDialogImplObserver.observe();
     }
 
     public int getRowDrawable() {
@@ -199,6 +206,7 @@ public class VolumeUtils {
             mRingtone = null;
         }
         mHandler.removeCallbacksAndMessages(null);
+        mVolumeDialogImplObserver.unobserve();
     }
     
     public void performVolumeHaptics(int progress, int maxVolume) {
@@ -211,6 +219,52 @@ public class VolumeUtils {
         if (currentTime - lastVibrateTime >= VIBRATE_HAPTICS_TIMEOUT) {
             VibrationUtils.triggerVibration(mContext, volHaptics);
             lastVibrateTime = currentTime;
+        }
+    }
+    
+    private class VolumeDialogImplObserver extends ContentObserver {
+
+        public VolumeDialogImplObserver() {
+            super(null);
+        }
+
+        @Override
+        public void onChange(boolean selfChange, Uri uri) {
+            updateSettings();
+        }
+
+        void updateSettings() {
+            int volumeStyle = Settings.System.getInt(
+                    mContext.getContentResolver(),
+                    "custom_volume_styles", 0);
+            setVolumeStyle(volumeStyle);
+
+            boolean soundHapticsEnabled = Settings.System.getInt(
+                    mContext.getContentResolver(),
+                    "volume_sound_haptics", 0) != 0;
+            setSoundsHapticsEnabled(soundHapticsEnabled);
+
+            int hapticsIntensity = Settings.System.getInt(
+                    mContext.getContentResolver(),
+                    "volume_slider_haptics_intensity", 0);
+            setVolHapticsIntensity(hapticsIntensity);
+        }
+
+        void observe() {
+            mContext.getContentResolver().registerContentObserver(
+                    Settings.System.getUriFor("custom_volume_styles"),
+                    false, this);
+            mContext.getContentResolver().registerContentObserver(
+                    Settings.System.getUriFor("volume_sound_haptics"),
+                    false, this);
+            mContext.getContentResolver().registerContentObserver(
+                    Settings.System.getUriFor("volume_slider_haptics_intensity"),
+                    false, this);
+            updateSettings();
+        }
+
+        void unobserve() {
+            mContext.getContentResolver().unregisterContentObserver(this);
         }
     }
 }
