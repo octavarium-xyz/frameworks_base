@@ -35,11 +35,6 @@ import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.Icon;
-import android.media.MediaMetadata;
-import android.media.session.MediaController;
-import android.media.session.MediaSession;
-import android.media.session.MediaSessionManager;
-import android.media.session.PlaybackState;
 import android.media.session.MediaSessionLegacyHelper;
 import android.os.Bundle;
 import android.os.Handler;
@@ -69,18 +64,16 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.android.systemui.broadcast.BroadcastSender;
 import com.android.systemui.res.R;
 import com.android.systemui.statusbar.phone.SystemUIDialog;
+import com.android.systemui.util.MediaSessionManagerHelper;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Base dialog for media output UI
  */
 public abstract class MediaOutputBaseDialog extends SystemUIDialog implements
-        MediaOutputController.Callback, Window.Callback {
+        MediaOutputController.Callback, Window.Callback, MediaSessionManagerHelper.MediaMetadataListener {
 
     private static final String TAG = "MediaOutputDialog";
     private static final String EMPTY_TITLE = " ";
@@ -96,7 +89,7 @@ public abstract class MediaOutputBaseDialog extends SystemUIDialog implements
     final MediaOutputController mMediaOutputController;
     final BroadcastSender mBroadcastSender;
     
-    private MediaController mController;
+    private final MediaSessionManagerHelper mMediaSessionManagerHelper;
 
     /**
      * Signals whether the dialog should NOT show app-related metadata.
@@ -130,18 +123,6 @@ public abstract class MediaOutputBaseDialog extends SystemUIDialog implements
     private ImageView mPrevIcon;
     private ImageView mPlayIcon;
     private ImageView mNexticon;
-
-    private final MediaController.Callback mMediaCallback = new MediaController.Callback() {
-        @Override
-        public void onPlaybackStateChanged(@NonNull PlaybackState state) {
-            updateMediaController();
-        }
-        @Override
-        public void onMetadataChanged(MediaMetadata metadata) {
-            super.onMetadataChanged(metadata);
-            updateMediaController();
-        }
-    };
 
     MediaOutputBaseAdapter mAdapter;
 
@@ -266,6 +247,7 @@ public abstract class MediaOutputBaseDialog extends SystemUIDialog implements
                 R.dimen.media_output_dialog_list_padding_top);
         mExecutor = Executors.newSingleThreadExecutor();
         mIncludePlaybackAndAppMetadata = includePlaybackAndAppMetadata;
+        mMediaSessionManagerHelper = MediaSessionManagerHelper.Companion.getInstance(mContext);
     }
 
     @Override
@@ -320,7 +302,6 @@ public abstract class MediaOutputBaseDialog extends SystemUIDialog implements
                 mMediaOutputController::tryToLaunchMediaApplication);
 
         mDismissing = false;
-        updateMediaController();
     }
 
     private void toggleMediaPlayback() {
@@ -346,93 +327,17 @@ public abstract class MediaOutputBaseDialog extends SystemUIDialog implements
         event = KeyEvent.changeAction(event, KeyEvent.ACTION_UP);
         helper.sendMediaButtonEvent(event, true);
         refresh();
-        updateMediaController();
-    }
-
-    private boolean isMediaControllerAvailable() {
-        final MediaController mediaController = getActiveLocalMediaController();
-        return mediaController != null && !TextUtils.isEmpty(mediaController.getPackageName());
-    }
-    
-    private MediaController getActiveLocalMediaController() {
-        MediaSessionManager mediaSessionManager =
-                mContext.getSystemService(MediaSessionManager.class);
-        MediaController localController = null;
-        final List<String> remoteMediaSessionLists = new ArrayList<>();
-        for (MediaController controller : mediaSessionManager.getActiveSessions(null)) {
-            final MediaController.PlaybackInfo pi = controller.getPlaybackInfo();
-            if (pi == null) {
-                continue;
-            }
-            final PlaybackState playbackState = controller.getPlaybackState();
-            if (playbackState == null) {
-                continue;
-            }
-            if (playbackState.getState() != PlaybackState.STATE_PLAYING) {
-                continue;
-            }
-            if (pi.getPlaybackType() == MediaController.PlaybackInfo.PLAYBACK_TYPE_REMOTE) {
-                if (localController != null
-                        && TextUtils.equals(
-                                localController.getPackageName(), controller.getPackageName())) {
-                    localController = null;
-                }
-                if (!remoteMediaSessionLists.contains(controller.getPackageName())) {
-                    remoteMediaSessionLists.add(controller.getPackageName());
-                }
-                continue;
-            }
-            if (pi.getPlaybackType() == MediaController.PlaybackInfo.PLAYBACK_TYPE_LOCAL) {
-                if (localController == null
-                        && !remoteMediaSessionLists.contains(controller.getPackageName())) {
-                    localController = controller;
-                }
-            }
-        }
-        return localController;
-    }
-
-    private int getMediaControllerPlaybackState(MediaController controller) {
-        if (controller != null) {
-            final PlaybackState playbackState = controller.getPlaybackState();
-            if (playbackState != null) {
-                return playbackState.getState();
-            }
-        }
-        return PlaybackState.STATE_NONE;
-    }
-
-    private boolean sameSessions(MediaController a, MediaController b) {
-        if (a == b) {
-            return true;
-        }
-        if (a == null) {
-            return false;
-        }
-        return a.controlsSameSession(b);
-    }
-
-    private void updateMediaController() {
-        MediaController localController = getActiveLocalMediaController();
-        if (localController != null && !sameSessions(mController, localController)) {
-            if (mController != null) {
-                mController.unregisterCallback(mMediaCallback);
-                mController = null;
-            }
-            mController = localController;
-            mController.registerCallback(mMediaCallback);
-        }
-        updateMediaState();
     }
     
     private void updateMediaState() {
-        mPlayIcon.setImageDrawable(mContext.getDrawable(isPlaying() ? R.drawable.ic_media_output_pause : R.drawable.ic_media_output_play));
+        if (mPlayIcon == null) return;
+        mPlayIcon.setImageDrawable(mContext.getDrawable(mMediaSessionManagerHelper.isMediaPlaying() ? R.drawable.ic_media_output_pause : R.drawable.ic_media_output_play));
     }
     
-    private boolean isPlaying() {
-        boolean isPlaying = isMediaControllerAvailable() 
-            && PlaybackState.STATE_PLAYING == getMediaControllerPlaybackState(mController);
-        return isPlaying;
+    @Override
+    public void show() {
+        super.show();
+        updateMediaState();
     }
 
     @Override
@@ -453,6 +358,7 @@ public abstract class MediaOutputBaseDialog extends SystemUIDialog implements
                     mBroadcastCallback);
             mIsLeBroadcastCallbackRegistered = true;
         }
+        mMediaSessionManagerHelper.addMediaMetadataListener(this);
     }
 
     @Override
@@ -465,6 +371,7 @@ public abstract class MediaOutputBaseDialog extends SystemUIDialog implements
             mIsLeBroadcastCallbackRegistered = false;
         }
         mMediaOutputController.stop();
+        mMediaSessionManagerHelper.removeMediaMetadataListener(this);
     }
 
     @VisibleForTesting
@@ -752,6 +659,16 @@ public abstract class MediaOutputBaseDialog extends SystemUIDialog implements
     @Override
     public void dismissDialog() {
         mBroadcastSender.closeSystemDialogs();
+    }
+
+    @Override
+    public void onMediaMetadataChanged() {
+        updateMediaState();
+    }
+
+    @Override
+    public void onPlaybackStateChanged() {
+        updateMediaState();
     }
 
     void onHeaderIconClick() {
