@@ -2043,17 +2043,13 @@ final class ActivityManagerConstants extends ContentObserver {
         if ("gameboost".equals(powerMode)) {
             CUR_MAX_CACHED_PROCESSES = 8;
         } else {
-            final long ramBytes = new com.android.internal.util.MemInfoReader().getTotalSize();
-            if (ramBytes <= android.util.DataUnit.GIGABYTES.toBytes(6)) {
-                CUR_MAX_CACHED_PROCESSES = 48;
-            } else if (ramBytes <= android.util.DataUnit.GIGABYTES.toBytes(8)) {
-                CUR_MAX_CACHED_PROCESSES = 64;
-            } else if (ramBytes <= android.util.DataUnit.GIGABYTES.toBytes(12)) {
-                CUR_MAX_CACHED_PROCESSES = 128;
-            } else if (ramBytes <= android.util.DataUnit.GIGABYTES.toBytes(16)) {
-                CUR_MAX_CACHED_PROCESSES = 256;
+            com.android.internal.util.MemInfoReader memInfoReader = new com.android.internal.util.MemInfoReader();
+            memInfoReader.readMemInfo();
+            final long ramBytes = memInfoReader.getTotalSize();
+            if (ramBytes <= android.util.DataUnit.GIGABYTES.toBytes(4)) {
+                CUR_MAX_CACHED_PROCESSES = 32;
             } else {
-                CUR_MAX_CACHED_PROCESSES = 1024;
+                CUR_MAX_CACHED_PROCESSES = 96;
             }
         }
         CUR_MAX_EMPTY_PROCESSES = computeEmptyProcessLimit(CUR_MAX_CACHED_PROCESSES);
