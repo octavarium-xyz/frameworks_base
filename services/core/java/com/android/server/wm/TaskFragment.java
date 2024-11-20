@@ -1539,7 +1539,7 @@ class TaskFragment extends WindowContainer<WindowContainer> {
             } else {
                 dc.prepareAppTransition(TRANSIT_OPEN);
                 if (mPowerManagerInternal != null) {
-                    mPowerManagerInternal.setPowerBoost(Boost.DISPLAY_UPDATE_IMMINENT, 80);
+                    mPowerManagerInternal.setPowerBoost(Boost.INTERACTION, 5000);
                 }
             }
         }
