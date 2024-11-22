@@ -32,8 +32,8 @@ import kotlinx.coroutines.Dispatchers.Main
 class MediaSessionManagerHelper private constructor(private val context: Context) {
 
     interface MediaMetadataListener {
-        fun onMediaMetadataChanged()
-        fun onPlaybackStateChanged()
+        fun onMediaMetadataChanged() {}
+        fun onPlaybackStateChanged() {}
         fun onMediaColorsChanged() {}
     }
 
