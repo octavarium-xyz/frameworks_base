@@ -20,6 +20,7 @@ import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
+import android.provider.Settings
 import android.text.TextUtils
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.Main
@@ -89,9 +90,22 @@ class MediaSessionManagerHelper private constructor(private val context: Context
     }
 
     private fun notifyListeners() {
+        // Store the last used media package name
+        saveLastNonNullPackageName()
         listeners.forEach {
             it.onMediaMetadataChanged()
             it.onPlaybackStateChanged()
+        }
+    }
+
+    private fun saveLastNonNullPackageName() {
+        val packageName = getActiveLocalMediaController()?.packageName
+        if (!TextUtils.isEmpty(packageName)) {
+            Settings.System.putString(
+                context.contentResolver,
+                "media_session_last_package_name",
+                packageName
+            )
         }
     }
 
