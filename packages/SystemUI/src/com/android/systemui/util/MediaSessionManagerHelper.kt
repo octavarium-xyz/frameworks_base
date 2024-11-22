@@ -22,6 +22,10 @@ import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.provider.Settings
 import android.text.TextUtils
+
+import com.android.systemui.colorextraction.SysuiColorExtractor
+import com.android.systemui.Dependency
+
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.Main
 
@@ -30,6 +34,7 @@ class MediaSessionManagerHelper private constructor(private val context: Context
     interface MediaMetadataListener {
         fun onMediaMetadataChanged()
         fun onPlaybackStateChanged()
+        fun onMediaColorsChanged() {}
     }
 
     private var lastSavedPackageName: String? = null
@@ -37,6 +42,7 @@ class MediaSessionManagerHelper private constructor(private val context: Context
     private var activeController: MediaController? = null
     private val listeners: MutableSet<MediaMetadataListener> = mutableSetOf()
     private var mediaMetadata: MediaMetadata? = null
+    private var currMediaArtColor: Int = 0
 
     private val mediaControllerCallback = object : MediaController.Callback() {
         override fun onMetadataChanged(metadata: MediaMetadata?) {
@@ -63,8 +69,17 @@ class MediaSessionManagerHelper private constructor(private val context: Context
         updateJob = CoroutineScope(Dispatchers.Main).launch {
             while (isActive) {
                 updateMediaController()
+                updateMediaColors()
                 delay(1000)
             }
+        }
+    }
+    
+    fun updateMediaColors() {
+        val mediaArtColor = Dependency.get(SysuiColorExtractor::class.java).getMediaBackgroundColor()
+        if (currMediaArtColor != mediaArtColor) {
+            currMediaArtColor = mediaArtColor
+            notifyListeners { it.onMediaColorsChanged() }
         }
     }
 
@@ -157,6 +172,10 @@ class MediaSessionManagerHelper private constructor(private val context: Context
 
     fun getMediaMetadata(): MediaMetadata? {
         return mediaMetadata
+    }
+    
+    fun getMediaColor(): Int {
+        return currMediaArtColor
     }
 
     fun isMediaControllerAvailable(): Boolean {
