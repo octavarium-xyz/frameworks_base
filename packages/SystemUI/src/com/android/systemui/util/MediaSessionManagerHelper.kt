@@ -32,6 +32,7 @@ class MediaSessionManagerHelper private constructor(private val context: Context
         fun onPlaybackStateChanged()
     }
 
+    private var lastSavedPackageName: String? = null
     private val mediaSessionManager: MediaSessionManager = context.getSystemService(MediaSessionManager::class.java)!!
     private var activeController: MediaController? = null
     private val listeners: MutableSet<MediaMetadataListener> = mutableSetOf()
@@ -50,6 +51,13 @@ class MediaSessionManagerHelper private constructor(private val context: Context
     }
 
     private var updateJob: Job? = null
+
+    init {
+        lastSavedPackageName = Settings.System.getString(
+            context.contentResolver,
+            "media_session_last_package_name"
+        )
+    }
 
     private fun startPeriodicUpdate() {
         updateJob = CoroutineScope(Dispatchers.Main).launch {
@@ -100,12 +108,13 @@ class MediaSessionManagerHelper private constructor(private val context: Context
 
     private fun saveLastNonNullPackageName() {
         val packageName = getActiveLocalMediaController()?.packageName
-        if (!TextUtils.isEmpty(packageName)) {
+        if (!TextUtils.isEmpty(packageName) && packageName != lastSavedPackageName) {
             Settings.System.putString(
                 context.contentResolver,
                 "media_session_last_package_name",
                 packageName
             )
+            lastSavedPackageName = packageName
         }
     }
 
