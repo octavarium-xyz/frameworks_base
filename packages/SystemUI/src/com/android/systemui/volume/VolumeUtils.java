@@ -60,6 +60,7 @@ public class VolumeUtils {
     
     private boolean mSoundHapticsEnabled = false;
     private boolean mExpandable = true;
+    private boolean mShowMediaOutput = true;
 
     private static final int[] seekbarDrawables = {
             R.drawable.volume_row_seekbar,
@@ -227,6 +228,10 @@ public class VolumeUtils {
         return mExpandable;
     }
     
+    public boolean isMediaOutputEnabled() {
+        return mShowMediaOutput;
+    }
+    
     private class VolumeDialogImplObserver extends ContentObserver {
 
         public VolumeDialogImplObserver() {
@@ -257,6 +262,10 @@ public class VolumeUtils {
             mExpandable = Settings.System.getInt(
                     mContext.getContentResolver(),
                     "volume_panel_expandable", 1) != 0;
+                    
+            mShowMediaOutput = Settings.System.getInt(
+                    mContext.getContentResolver(),
+                    "volume_panel_media_output", 1) != 0;
         }
 
         void observe() {
@@ -271,6 +280,9 @@ public class VolumeUtils {
                     false, this);
             mContext.getContentResolver().registerContentObserver(
                     Settings.System.getUriFor("volume_panel_expandable"),
+                    false, this);
+            mContext.getContentResolver().registerContentObserver(
+                    Settings.System.getUriFor("volume_panel_media_output"),
                     false, this);
             updateSettings();
         }

@@ -1453,7 +1453,8 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         }
         if (mSettingsView != null) {
             mSettingsView.setVisibility(
-                    showSettings && (isMediaControllerAvailable() || isBluetoothA2dpConnected())
+                    showSettings && (isMediaControllerAvailable() || isBluetoothA2dpConnected()) 
+                        && mVolumeUtils.isMediaOutputEnabled()
                             ? VISIBLE
                             : GONE);
         }
