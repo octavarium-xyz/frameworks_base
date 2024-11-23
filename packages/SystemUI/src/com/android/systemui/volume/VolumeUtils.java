@@ -59,6 +59,7 @@ public class VolumeUtils {
     private int mVolumeStyle = 0;
     
     private boolean mSoundHapticsEnabled = false;
+    private boolean mExpandable = true;
 
     private static final int[] seekbarDrawables = {
             R.drawable.volume_row_seekbar,
@@ -222,6 +223,10 @@ public class VolumeUtils {
         }
     }
     
+    public boolean isPanelExpandable() {
+        return mExpandable;
+    }
+    
     private class VolumeDialogImplObserver extends ContentObserver {
 
         public VolumeDialogImplObserver() {
@@ -248,6 +253,10 @@ public class VolumeUtils {
                     mContext.getContentResolver(),
                     "volume_slider_haptics_intensity", 0);
             setVolHapticsIntensity(hapticsIntensity);
+            
+            mExpandable = Settings.System.getInt(
+                    mContext.getContentResolver(),
+                    "volume_panel_expandable", 1) != 0;
         }
 
         void observe() {
@@ -259,6 +268,9 @@ public class VolumeUtils {
                     false, this);
             mContext.getContentResolver().registerContentObserver(
                     Settings.System.getUriFor("volume_slider_haptics_intensity"),
+                    false, this);
+            mContext.getContentResolver().registerContentObserver(
+                    Settings.System.getUriFor("volume_panel_expandable"),
                     false, this);
             updateSettings();
         }
