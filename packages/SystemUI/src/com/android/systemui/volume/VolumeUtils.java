@@ -88,17 +88,8 @@ public class VolumeUtils {
         return seekbarDrawables[mVolumeStyle];
     }
     
-    public void setVolumeStyle(int volumeStyle) {
-        mVolumeStyle = volumeStyle;
-        updateVolumeStyleOverlay();
-    }
-    
     public void setSoundsHapticsEnabled(boolean enabled) {
         mSoundHapticsEnabled = enabled;
-    }
-    
-    public void setVolHapticsIntensity(int intensity) {
-        mVolHapticsIntensity = intensity;
     }
     
     private void updateVolumeStyleOverlay() {
@@ -244,25 +235,22 @@ public class VolumeUtils {
         }
 
         void updateSettings() {
-            int volumeStyle = Settings.System.getInt(
+            int newVolumeStyle = Settings.System.getInt(
                     mContext.getContentResolver(),
                     "custom_volume_styles", 0);
-            setVolumeStyle(volumeStyle);
-
-            boolean soundHapticsEnabled = Settings.System.getInt(
+            if (newVolumeStyle != mVolumeStyle) {
+                mVolumeStyle = newVolumeStyle;
+                updateVolumeStyleOverlay();
+            }
+            mSoundHapticsEnabled = Settings.System.getInt(
                     mContext.getContentResolver(),
                     "volume_sound_haptics", 0) != 0;
-            setSoundsHapticsEnabled(soundHapticsEnabled);
-
-            int hapticsIntensity = Settings.System.getInt(
+            mVolHapticsIntensity = Settings.System.getInt(
                     mContext.getContentResolver(),
                     "volume_slider_haptics_intensity", 0);
-            setVolHapticsIntensity(hapticsIntensity);
-            
             mExpandable = Settings.System.getInt(
                     mContext.getContentResolver(),
                     "volume_panel_expandable", 1) != 0;
-                    
             mShowMediaOutput = Settings.System.getInt(
                     mContext.getContentResolver(),
                     "volume_panel_media_output", 1) != 0;
